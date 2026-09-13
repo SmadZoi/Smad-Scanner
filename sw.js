@@ -1,12 +1,13 @@
-const CACHE_VERSION = 'v1.0.0';
-const CACHE_NAME = 'fib786-scanner-' + CACHE_VERSION;
+const CACHE_VERSION = 'v1.1.0';
+const CACHE_NAME = 'filler-app-' + CACHE_VERSION;
 
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './logo-splash.png'
 ];
 
 // Install: cache the app shell (the static files that make up the interface)
@@ -22,7 +23,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((k) => k.startsWith('fib786-scanner-') && k !== CACHE_NAME)
+        keys.filter((k) => k.startsWith('filler-app-') && k !== CACHE_NAME)
             .map((k) => caches.delete(k))
       )
     )
@@ -32,6 +33,7 @@ self.addEventListener('activate', (event) => {
 
 // Fetch strategy:
 // - Binance API calls (live price data) -> always go to the network, never cached.
+// - CDN chart library -> network first, cache as fallback.
 // - Everything else (the app's own files) -> network first, falling back to cache
 //   when offline, so you always get the latest version when you have a connection,
 //   and the app still opens when you don't.

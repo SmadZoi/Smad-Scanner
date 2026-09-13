@@ -1,7 +1,7 @@
 {
-  "name": "0.786 Continuation Scanner",
-  "short_name": "0.786 Scanner",
-  "description": "Fibonacci 0.786 continuation scanner for Binance USDT pairs, 1H structure.",
+  "name": "Filler",
+  "short_name": "Filler",
+  "description": "Filler — filter the noise, narrow the scope. Crypto structure scanners for Binance USDT pairs.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

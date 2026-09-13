@@ -4,10 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0A0E13">
-<title>0.786 Scanner</title>
+<title>Filler</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root{
     --bg:#0A0E13; --panel:#10151D; --panel-2:#141A23; --border:#1E2733;
@@ -32,6 +34,19 @@
   button, input, select, textarea{font-family:inherit; color:inherit;}
   a{color:inherit;}
 
+  /* ---- splash ---- */
+  #splash{
+    position:fixed; inset:0; background:#000; z-index:9999;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    transition:opacity .5s ease, visibility .5s ease;
+  }
+  #splash img{width:118px; height:118px; border-radius:26px; box-shadow:0 0 40px rgba(99,102,241,0.25);}
+  #splash .splash-slogan{
+    font-family:var(--mono); font-size:12.5px; color:#8A93A6; text-align:center; max-width:260px;
+    letter-spacing:0.02em; line-height:1.6; padding:0 30px;
+  }
+  #splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+
   /* ---- shared header ---- */
   .topbar{
     padding:18px 20px 14px; border-bottom:1px solid var(--border); position:sticky; top:0;
@@ -43,6 +58,7 @@
   }
   .eyebrow .dot{width:5px; height:5px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber);}
   .topbar h1{font-family:var(--disp); font-weight:700; font-size:22px; margin:0; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px;}
+  .topbar h1 img{width:26px; height:26px; border-radius:7px; display:block;}
   .back-btn{
     background:none; border:1px solid var(--border); color:var(--text); border-radius:7px;
     width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
@@ -116,7 +132,7 @@
   .btn.secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--border);}
   .btn.danger{background:var(--bear-dim); color:var(--bear); border:1px solid rgba(255,85,102,0.4);}
 
-  /* ---- scanner screen (kept from original) ---- */
+  /* ---- scanner screen ---- */
   .control-panel{
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     padding:16px 16px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; margin-bottom:8px;
@@ -129,6 +145,26 @@
   .ticker-tape{font-family:var(--mono); font-size:10.5px; color:var(--muted); height:16px; overflow:hidden; white-space:nowrap; margin:8px 0 4px;}
   .search-box{margin:14px 0;}
   .search-box input{width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-family:var(--mono); font-size:13px;}
+
+  /* ---- checklist ---- */
+  .checklist-card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;}
+  .checklist-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .checklist-head h3{font-family:var(--disp); font-size:14.5px; margin:0;}
+  .checklist-reset{background:none; border:none; color:var(--muted); font-family:var(--mono); font-size:10.5px; cursor:pointer; text-decoration:underline;}
+  .cl-item{display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer;}
+  .cl-item:last-of-type{border-bottom:none;}
+  .cl-item input{margin-top:2px; width:16px; height:16px; flex-shrink:0;}
+  .cl-item span{font-size:13px; line-height:1.4;}
+  .cl-result{margin-top:14px; padding:12px 14px; border-radius:8px; background:var(--panel-2); border:1px solid var(--border);}
+  .cl-bar-track{height:8px; border-radius:4px; background:var(--border); overflow:hidden; margin-bottom:8px;}
+  .cl-bar-fill{height:100%; border-radius:4px; transition:width .25s ease;}
+  .cl-pct-row{display:flex; justify-content:space-between; align-items:center; font-family:var(--mono);}
+  .cl-pct{font-size:18px; font-weight:700;}
+  .cl-comment{font-family:var(--disp); font-weight:700; font-size:13px; padding:4px 10px; border-radius:20px;}
+  .cl-comment.dont{background:var(--bear-dim); color:var(--bear);}
+  .cl-comment.partial{background:var(--amber-dim); color:var(--amber);}
+  .cl-comment.better{background:var(--bull-dim); color:var(--bull);}
+  .cl-comment.outstanding{background:var(--bull); color:#06120C;}
 
   .section-head{display:flex; align-items:baseline; gap:10px; margin:26px 0 12px;}
   .section-head:first-of-type{margin-top:6px;}
@@ -164,6 +200,10 @@
   .mini-btn:hover{color:var(--text);}
   .h4-box{margin-top:8px; padding:8px 9px; background:var(--panel-2); border-radius:7px; font-family:var(--mono); font-size:11px; color:var(--muted); display:none;}
   .h4-box.open{display:block;}
+  .chart-box{height:190px; margin:10px 0; border-radius:8px; overflow:hidden; background:var(--panel-2); border:1px solid var(--border);}
+  .chart-legend{display:flex; gap:12px; font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-top:4px; flex-wrap:wrap;}
+  .chart-legend span{display:flex; align-items:center; gap:4px;}
+  .chart-legend i{width:8px; height:2px; display:inline-block;}
 
   /* ---- watchlist / journal rows ---- */
   .wl-add{display:flex; gap:8px; margin-bottom:16px;}
@@ -191,11 +231,16 @@
 </head>
 <body data-theme="dark">
 
+<div id="splash">
+  <img src="logo-splash.png" alt="Filler logo">
+  <div class="splash-slogan">Filler is for filter the noise to narrow the scope.</div>
+</div>
+
 <!-- ============ HOME ============ -->
 <section class="screen active" id="screen-home">
   <div class="topbar">
     <div class="eyebrow"><span class="dot"></span>DASHBOARD</div>
-    <h1>0.786 Scanner</h1>
+    <h1><img src="icon-192.png" alt=""> Filler</h1>
   </div>
   <div style="padding:18px 20px 0;">
     <div class="stat-row">
@@ -215,18 +260,31 @@
     </div>
 
     <div class="section-title">Reference</div>
-    <button class="link-btn" onclick="openStrategy()">📋 View strategy rules</button>
     <button class="link-btn" onclick="showScreen('watchlist')">⭐ Watchlist</button>
   </div>
 </section>
 
-<!-- ============ SCANNER (unchanged core, additions layered on) ============ -->
+<!-- ============ SCANNER ============ -->
 <section class="screen" id="screen-scanner">
   <div class="topbar">
     <div class="eyebrow"><span class="dot"></span>LIVE BINANCE USDT · 1H STRUCTURE SCAN</div>
     <h1>0.786 Continuation Scanner</h1>
   </div>
   <div style="padding:16px 20px 0;">
+    <button class="link-btn" onclick="openStrategy()">📋 View strategy rules</button>
+
+    <div class="checklist-card">
+      <div class="checklist-head"><h3>Trade Qualification Checklist</h3><button class="checklist-reset" onclick="resetChecklist()">Reset</button></div>
+      <div id="checklistItems"></div>
+      <div class="cl-result">
+        <div class="cl-bar-track"><div class="cl-bar-fill" id="clBarFill"></div></div>
+        <div class="cl-pct-row">
+          <span class="cl-pct" id="clPct">0%</span>
+          <span class="cl-comment dont" id="clComment">Don't take</span>
+        </div>
+      </div>
+    </div>
+
     <div class="control-panel">
       <div class="field"><label>Pairs to scan</label><input type="number" id="symLimit" value="150" min="10" max="500" step="10"></div>
       <div class="field"><label>Band low</label><input type="number" id="bandLow" value="0.780" min="0.6" max="0.95" step="0.001"></div>
@@ -251,7 +309,7 @@
     <div class="section-head"><h2>Approaching 0.786</h2><span class="count" id="cntWatch">0</span><div class="line"></div></div>
     <div class="grid" id="watchGrid"><div class="empty">Run a scan to populate.</div></div>
 
-    <footer class="note">Fractal swing structure, BOS confirmation, fib drawn across the last leg. 4H trend filter and volatility filter (if enabled in Settings) are applied before results are shown. RR uses your stop buffer % and risk settings from Settings. Heuristic screen — confirm on the chart before entering.</footer>
+    <footer class="note">Fractal swing structure, BOS confirmation, fib drawn across the last leg. 4H trend filter and volatility filter (if enabled in Settings) are applied before results are shown. Each card's chart shows the 1H candles with swing 0, swing 1, and the 0.786 level marked. RR uses your stop buffer % and risk settings from Settings. Heuristic screen — confirm on the chart before entering.</footer>
   </div>
 </section>
 
@@ -340,7 +398,7 @@
   </div>
 </section>
 
-<!-- ============ STRATEGY (overlay screen, reached via button) ============ -->
+<!-- ============ STRATEGY (overlay screen) ============ -->
 <section class="screen" id="screen-strategy">
   <div class="topbar">
     <button class="back-btn" onclick="closeStrategy()">←</button>
@@ -411,26 +469,93 @@ let settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('scanne
 let watchlist = new Set(JSON.parse(localStorage.getItem('scanner_watchlist')||'[]'));
 let journal = JSON.parse(localStorage.getItem('scanner_journal')||'[]');
 let currentScreen = 'home';
-let previousScreen = 'home';
-let lastResults = [];       // cache of last full scan (for search filter, watchlist status, journal quick-log)
+let lastResults = [];
 let klineCache4h = new Map();
+let candleCache1h = new Map();
 let autoTimer = null;
 const BINANCE = 'https://api.binance.com';
 
-/* ================= NAVIGATION ================= */
-function showScreen(name){
+/* ================= NAVIGATION (with back-button support) ================= */
+function showScreen(name, fromPopstate){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
   currentScreen = name;
   window.scrollTo(0,0);
+  if(!fromPopstate) history.pushState({screen:name}, '', '#'+name);
   if(name==='home') renderHome();
   if(name==='watchlist') renderWatchlist();
   if(name==='journal') renderJournal();
   if(name==='settings') loadSettingsForm();
+  if(name==='scanner') renderChecklist();
 }
-function openStrategy(){ previousScreen = currentScreen; document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById('screen-strategy').classList.add('active'); window.scrollTo(0,0); }
-function closeStrategy(){ showScreen(previousScreen); }
+function openStrategy(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-strategy').classList.add('active');
+  window.scrollTo(0,0);
+  history.pushState({screen:'strategy'}, '', '#strategy');
+}
+function closeStrategy(){ history.back(); }
+
+window.addEventListener('popstate', (e)=>{
+  const screen = (e.state && e.state.screen) || 'home';
+  if(screen === 'strategy'){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-strategy').classList.add('active');
+  } else {
+    showScreen(screen, true);
+  }
+});
+
+/* ================= CHECKLIST ================= */
+const CHECKLIST_ITEMS = [
+  "Market is in a clear trend (not sideways/choppy)",
+  "Fibonacci drawn from the correct swing (0 to 1)",
+  "Price has retraced into the 0.786 zone",
+  "Healthy pullback with strong volatility on the impulse leg",
+  "Clean structure & liquidity (no messy chop)",
+  "Entry trigger confirmed — direct 0.786 or CHoCH + FVG/OB",
+  "Stop loss placed below the key level with a buffer",
+  "Take profit set at the swing high/low (fib 0)",
+  "Minimum 1:3 risk-to-reward achieved",
+  "Risking 1–2% of account or less on this trade"
+];
+let checklistState = JSON.parse(localStorage.getItem('filler_checklist')||'null') || CHECKLIST_ITEMS.map(()=>false);
+
+function renderChecklist(){
+  const container = document.getElementById('checklistItems');
+  container.innerHTML = CHECKLIST_ITEMS.map((text,i)=>`
+    <label class="cl-item">
+      <input type="checkbox" data-idx="${i}" ${checklistState[i]?'checked':''} onchange="toggleChecklistItem(${i})">
+      <span>${text}</span>
+    </label>`).join('');
+  updateChecklistResult();
+}
+function toggleChecklistItem(i){
+  checklistState[i] = !checklistState[i];
+  localStorage.setItem('filler_checklist', JSON.stringify(checklistState));
+  updateChecklistResult();
+}
+function resetChecklist(){
+  checklistState = CHECKLIST_ITEMS.map(()=>false);
+  localStorage.setItem('filler_checklist', JSON.stringify(checklistState));
+  renderChecklist();
+}
+function updateChecklistResult(){
+  const checked = checklistState.filter(Boolean).length;
+  const pct = Math.round((checked/CHECKLIST_ITEMS.length)*100);
+  document.getElementById('clPct').textContent = pct+'%';
+  document.getElementById('clBarFill').style.width = pct+'%';
+  const commentEl = document.getElementById('clComment');
+  let cls, label, color;
+  if(pct < 40){ cls='dont'; label="Don't take"; color='var(--bear)'; }
+  else if(pct < 70){ cls='partial'; label='Partially ok'; color='var(--amber)'; }
+  else if(pct < 90){ cls='better'; label='Better'; color='var(--bull)'; }
+  else { cls='outstanding'; label='Outstanding'; color='var(--bull)'; }
+  commentEl.className = 'cl-comment ' + cls;
+  commentEl.textContent = label;
+  document.getElementById('clBarFill').style.background = color;
+}
 
 /* ================= SETTINGS ================= */
 function applyTheme(theme){ document.body.setAttribute('data-theme', theme); document.documentElement.setAttribute('data-theme', theme); }
@@ -446,9 +571,7 @@ function loadSettingsForm(){
   document.getElementById('setAccountSize').value = settings.accountSize;
   document.getElementById('setRiskPct').value = settings.riskPct;
 }
-function onThemeToggle(){
-  applyTheme(document.getElementById('setTheme').checked ? 'light' : 'dark');
-}
+function onThemeToggle(){ applyTheme(document.getElementById('setTheme').checked ? 'light' : 'dark'); }
 function saveSettings(){
   settings = {
     theme: document.getElementById('setTheme').checked ? 'light' : 'dark',
@@ -470,9 +593,7 @@ function saveSettings(){
 }
 function setupAutoRefresh(){
   if(autoTimer) clearInterval(autoTimer);
-  if(settings.autoRefresh){
-    autoTimer = setInterval(()=>{ runScan(true); }, settings.refreshMins*60000);
-  }
+  if(settings.autoRefresh){ autoTimer = setInterval(()=>{ runScan(true); }, settings.refreshMins*60000); }
 }
 
 /* ================= WATCHLIST ================= */
@@ -527,18 +648,14 @@ function addJournalEntry(){
   ['jeSymbol','jeEntry','jeStop','jeTarget','jeNotes'].forEach(id=>document.getElementById(id).value='');
   renderJournal();
 }
-function deleteJournalEntry(id){
-  journal = journal.filter(j=>j.id!==id);
-  persistJournal();
-  renderJournal();
-}
+function deleteJournalEntry(id){ journal = journal.filter(j=>j.id!==id); persistJournal(); renderJournal(); }
 function prefillJournal(symbol, direction, entry, stop, target){
   showScreen('journal');
   document.getElementById('jeSymbol').value = symbol;
   document.getElementById('jeDirection').value = direction;
-  document.getElementById('jeEntry').value = entry.toFixed ? entry : entry;
-  document.getElementById('jeStop').value = stop.toFixed ? stop : stop;
-  document.getElementById('jeTarget').value = target.toFixed ? target : target;
+  document.getElementById('jeEntry').value = entry;
+  document.getElementById('jeStop').value = stop;
+  document.getElementById('jeTarget').value = target;
   document.getElementById('jeDate').value = new Date().toISOString().slice(0,10);
 }
 function renderJournal(){
@@ -596,6 +713,7 @@ function fmtPrice(p){
   if(p >= 0.01) return p.toFixed(6);
   return p.toPrecision(4);
 }
+function getCSS(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
 
 async function getUniverse(limit){
   const [exInfoRes, tickerRes] = await Promise.all([
@@ -610,17 +728,11 @@ async function getUniverse(limit){
   let pool = tickers.filter(t=>validSymbols.has(t.symbol)).map(t=>({
     symbol:t.symbol, volume:parseFloat(t.quoteVolume)||0, change:Math.abs(parseFloat(t.priceChangePercent)||0)
   }));
-  if(settings.enableVol){
-    pool = pool.filter(t=>t.volume>=settings.minVolUSD && t.change>=settings.minChangePct);
-  }
+  if(settings.enableVol){ pool = pool.filter(t=>t.volume>=settings.minVolUSD && t.change>=settings.minChangePct); }
   pool.sort((a,b)=>b.volume-a.volume);
   const ranked = pool.slice(0, limit).map((t,i)=>({symbol:t.symbol, rank:i+1}));
-
-  // always include watchlist symbols even if outside top N / filtered out
   const rankedSet = new Set(ranked.map(r=>r.symbol));
-  watchlist.forEach(sym=>{
-    if(!rankedSet.has(sym)) ranked.push({symbol:sym, rank:'WL'});
-  });
+  watchlist.forEach(sym=>{ if(!rankedSet.has(sym)) ranked.push({symbol:sym, rank:'WL'}); });
   return ranked;
 }
 
@@ -735,6 +847,12 @@ function cardHTML(r){
           <span class="badge ${dirClass}">${dirLabel}</span>
         </div>
       </div>
+      <div class="chart-box" id="chart-${r.symbol}"></div>
+      <div class="chart-legend">
+        <span><i style="background:var(--muted);"></i>Swing 0</span>
+        <span><i style="background:var(--amber);"></i>Swing 1</span>
+        <span><i style="background:${r.direction==='bull'?'var(--bull)':'var(--bear)'};"></i>0.786</span>
+      </div>
       <div class="row"><span>Last price</span><b>${fmtPrice(r.lastPrice)}</b></div>
       <div class="row"><span>Swing ${r.direction==='bull'?'low (0)':'high (0)'}</span><b>${fmtPrice(r.swing0)}</b></div>
       <div class="row"><span>Swing ${r.direction==='bull'?'high (1)':'low (1)'}</span><b>${fmtPrice(r.swing1)}</b></div>
@@ -751,7 +869,7 @@ function cardHTML(r){
       ${r.h4 ? `<div class="row"><span>4H structure</span><b>${r.h4.direction==='bull'?'Bullish ✓':'Bearish ✓'}</b></div>` : ''}
       <div class="h4-box" id="h4box-${r.symbol}"></div>
       <div class="card-actions">
-        <div class="mini-btn" onclick="toggle4hView('${r.symbol}', ${JSON.stringify({fractalN: currentFractalN}).replace(/"/g,'&quot;')})">View 4H</div>
+        <div class="mini-btn" onclick="toggle4hView('${r.symbol}')">View 4H</div>
         <div class="mini-btn" onclick="prefillJournal('${r.symbol}', '${r.direction==='bull'?'long':'short'}', ${rrCalc.entry}, ${rrCalc.stop}, ${rrCalc.target})">Log trade →</div>
         <a class="mini-btn" href="https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}" target="_blank" rel="noopener">Chart ↗</a>
       </div>
@@ -768,6 +886,35 @@ async function toggle4hView(symbol){
   const st = await get4hDirection(symbol, currentFractalN);
   if(!st){ box.textContent = 'No clear 4H structure right now.'; return; }
   box.textContent = `4H: ${st.direction==='bull'?'bullish':'bearish'} · swing0 ${fmtPrice(st.swing0)} · swing1 ${fmtPrice(st.swing1)}`;
+}
+
+function renderChart(symbol){
+  const candles = candleCache1h.get(symbol);
+  const r = lastResults.find(x=>x.symbol===symbol);
+  const el = document.getElementById('chart-'+symbol);
+  if(!candles || !r || !el || el.dataset.rendered || typeof LightweightCharts==='undefined') return;
+  el.dataset.rendered = '1';
+  const chart = LightweightCharts.createChart(el, {
+    width: el.clientWidth, height: 190,
+    layout:{ background:{color:'transparent'}, textColor: getCSS('--muted') },
+    grid:{ vertLines:{color:getCSS('--border')}, horzLines:{color:getCSS('--border')} },
+    timeScale:{ borderColor:getCSS('--border'), timeVisible:true },
+    rightPriceScale:{ borderColor:getCSS('--border') },
+    crosshair:{ mode:0 },
+    handleScroll:false, handleScale:false
+  });
+  const series = chart.addCandlestickSeries({
+    upColor:getCSS('--bull'), downColor:getCSS('--bear'), borderVisible:false,
+    wickUpColor:getCSS('--bull'), wickDownColor:getCSS('--bear')
+  });
+  series.setData(candles.map(c=>({ time: Math.floor(c.time/1000), open:c.open, high:c.high, low:c.low, close:c.close })));
+  series.createPriceLine({ price:r.swing0, color:getCSS('--muted'), lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'0' });
+  series.createPriceLine({ price:r.swing1, color:getCSS('--amber'), lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'1' });
+  series.createPriceLine({ price:r.level786, color: r.direction==='bull'?getCSS('--bull'):getCSS('--bear'), lineWidth:2, lineStyle:0, axisLabelVisible:true, title:'0.786' });
+  chart.timeScale().fitContent();
+}
+function renderAllCharts(results){
+  results.forEach(r=>{ try{ renderChart(r.symbol); }catch(e){} });
 }
 
 function applySearchFilter(){
@@ -805,6 +952,7 @@ async function runScan(silent){
   const CONCURRENCY = 6;
   let completed = 0;
   klineCache4h.clear();
+  candleCache1h.clear();
 
   async function worker(queue){
     while(queue.length){
@@ -820,6 +968,7 @@ async function runScan(silent){
               if(!st || st.direction !== r.direction){ completed++; progressFill.style.width=(completed/universe.length*100).toFixed(1)+'%'; statusText.textContent=`${completed} / ${universe.length} scanned`; continue; }
               r.h4 = st;
             }
+            candleCache1h.set(item.symbol, candles);
             results.push({ symbol:item.symbol, rank:item.rank, ...r });
           }
         }
@@ -846,6 +995,7 @@ async function runScan(silent){
   document.getElementById('bearGrid').innerHTML = bear.length ? bear.map(cardHTML).join('') : '<div class="empty">No short setups at 0.786 right now.</div>';
   document.getElementById('watchGrid').innerHTML = watch.length ? watch.map(cardHTML).join('') : '<div class="empty">Nothing in structure right now.</div>';
   applySearchFilter();
+  setTimeout(()=>renderAllCharts([...bull, ...bear, ...watch]), 50);
 
   tickerTape.textContent = `scan complete · ${results.length} valid structures across ${universe.length} pairs`;
   statusText.textContent = `done · ${new Date().toLocaleTimeString()}`;
@@ -859,10 +1009,15 @@ document.getElementById('scanBtn').addEventListener('click', ()=>runScan(false))
 applyTheme(settings.theme);
 setupAutoRefresh();
 renderHome();
+renderChecklist();
+history.replaceState({screen:'home'}, '', '#home');
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); }, 300);
+});
 </script>
 </body>
 </html>
