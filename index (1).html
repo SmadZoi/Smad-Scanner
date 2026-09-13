@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0E13">
+<title>Filler</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#0A0E13; --panel:#10151D; --panel-2:#141A23; --border:#1E2733;
+    --text:#E7ECF2; --muted:#7C8798;
+    --bull:#22D48A; --bull-dim:#123326;
+    --bear:#FF5566; --bear-dim:#331419;
+    --amber:#F2B84B; --amber-dim:#332B14;
+    --mono:'JetBrains Mono', monospace; --disp:'Space Grotesk', sans-serif; --body:'Inter', sans-serif;
+  }
+  html[data-theme="light"]{
+    --bg:#F4F5F7; --panel:#FFFFFF; --panel-2:#F0F2F5; --border:#DEE2E8;
+    --text:#161B22; --muted:#66707C;
+    --bull-dim:#E3FBF1; --bear-dim:#FFE9EC; --amber-dim:#FFF3DC;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--body);
+    min-height:100vh; padding-bottom:76px;
+  }
+  ::selection{background:var(--amber); color:#0A0E13;}
+  button, input, select, textarea{font-family:inherit; color:inherit;}
+  a{color:inherit;}
+
+  /* ---- splash ---- */
+  #splash{
+    position:fixed; inset:0; background:#000; z-index:9999;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    transition:opacity .5s ease, visibility .5s ease;
+  }
+  #splash img{width:118px; height:118px; border-radius:26px; box-shadow:0 0 40px rgba(99,102,241,0.25);}
+  #splash .splash-slogan{
+    font-family:var(--mono); font-size:12.5px; color:#8A93A6; text-align:center; max-width:260px;
+    letter-spacing:0.02em; line-height:1.6; padding:0 30px;
+  }
+  #splash.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+
+  /* ---- shared header ---- */
+  .topbar{
+    padding:18px 20px 14px; border-bottom:1px solid var(--border); position:sticky; top:0;
+    background:var(--bg); z-index:20;
+  }
+  .topbar .eyebrow{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:0.16em; color:var(--amber);
+    text-transform:uppercase; display:flex; align-items:center; gap:7px; margin-bottom:4px;
+  }
+  .eyebrow .dot{width:5px; height:5px; border-radius:50%; background:var(--amber); box-shadow:0 0 6px var(--amber);}
+  .topbar h1{font-family:var(--disp); font-weight:700; font-size:22px; margin:0; letter-spacing:-0.01em; display:flex; align-items:center; gap:10px;}
+  .topbar h1 img{width:26px; height:26px; border-radius:7px; display:block;}
+  .back-btn{
+    background:none; border:1px solid var(--border); color:var(--text); border-radius:7px;
+    width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+
+  .screen{display:none; max-width:720px; margin:0 auto; padding:18px 20px 30px;}
+  .screen.active{display:block;}
+
+  /* ---- bottom nav ---- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:var(--panel); border-top:1px solid var(--border);
+    display:flex; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .navbtn{
+    flex:1; background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:6px 2px; cursor:pointer; color:var(--muted); font-family:var(--mono); font-size:9.5px;
+    letter-spacing:0.02em;
+  }
+  .navbtn svg{width:19px; height:19px;}
+  .navbtn.active{color:var(--bull);}
+
+  /* ---- generic components ---- */
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px;}
+  .stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;}
+  .stat{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 12px;}
+  .stat .num{font-family:var(--mono); font-size:19px; font-weight:700; color:var(--amber);}
+  .stat .lbl{font-family:var(--mono); font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-top:3px;}
+
+  .section-title{font-family:var(--disp); font-weight:600; font-size:15px; margin:22px 0 10px;}
+  .section-title:first-child{margin-top:0;}
+
+  .home-tabs{display:flex; gap:8px; margin-bottom:18px;}
+  .home-tab{flex:1; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:9px; font-family:var(--disp); font-weight:600; font-size:13px; cursor:pointer; color:var(--muted);}
+  .home-tab.active{color:var(--bull); border-color:var(--bull); background:var(--bull-dim);}
+  .news-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px;}
+  .news-status{font-family:var(--mono); font-size:11px; color:var(--muted);}
+  .news-card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 15px; margin-bottom:10px;}
+  .news-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px;}
+  .news-coin{font-family:var(--mono); font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:20px; background:var(--amber-dim); color:var(--amber); white-space:nowrap;}
+  .news-coin.none{background:var(--panel-2); color:var(--muted);}
+  .news-meta{font-family:var(--mono); font-size:10px; color:var(--muted); text-align:right;}
+  .news-title{font-family:var(--disp); font-weight:600; font-size:14px; margin:4px 0 6px; line-height:1.35;}
+  .news-snippet{font-size:12.5px; color:var(--muted); line-height:1.5; margin-bottom:8px;}
+  .news-price-row{display:flex; gap:14px; font-family:var(--mono); font-size:11.5px; margin-bottom:8px;}
+
+  .scanner-tile{
+    display:flex; justify-content:space-between; align-items:center; padding:16px;
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; cursor:pointer; margin-bottom:10px;
+  }
+  .scanner-tile .name{font-family:var(--disp); font-weight:600; font-size:15px;}
+  .scanner-tile .desc{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:3px;}
+  .chev{color:var(--muted); font-size:18px;}
+
+  .link-btn{
+    display:block; width:100%; text-align:left; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; cursor:pointer; font-family:var(--disp); font-weight:600; font-size:14px;
+    margin-bottom:10px;
+  }
+
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:14px;}
+  .field label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; font-family:var(--mono);}
+  .field input, .field select, .field textarea{
+    background:var(--panel-2); border:1px solid var(--border); padding:10px 11px; border-radius:7px; font-size:13.5px; width:100%;
+  }
+  .field textarea{resize:vertical; min-height:60px;}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+
+  .switch-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border);}
+  .switch-row:last-child{border-bottom:none;}
+  .switch-row .lbl{font-size:13.5px;}
+  .switch-row .sub{font-size:11px; color:var(--muted); margin-top:2px;}
+  .switch{position:relative; width:42px; height:24px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:var(--panel-2); border:1px solid var(--border); border-radius:24px; cursor:pointer; transition:.15s;}
+  .slider:before{content:""; position:absolute; width:16px; height:16px; left:3px; top:2px; background:var(--muted); border-radius:50%; transition:.15s;}
+  .switch input:checked + .slider{background:var(--bull-dim); border-color:var(--bull);}
+  .switch input:checked + .slider:before{transform:translateX(18px); background:var(--bull);}
+
+  .btn{
+    background:var(--bull); color:#06120C; border:none; border-radius:7px; padding:11px 18px;
+    font-family:var(--disp); font-weight:700; font-size:13.5px; cursor:pointer; width:100%;
+  }
+  .btn.secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--border);}
+  .btn.danger{background:var(--bear-dim); color:var(--bear); border:1px solid rgba(255,85,102,0.4);}
+
+  /* ---- scanner screen ---- */
+  .control-panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px 16px; display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; margin-bottom:8px;
+  }
+  .control-panel .field{margin-bottom:0;}
+  .control-panel .field input{width:84px; padding:8px 9px; font-family:var(--mono); font-size:12.5px;}
+  .status-line{font-family:var(--mono); font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:8px; width:100%; margin-top:2px;}
+  .progress-track{flex:1; height:4px; background:var(--panel-2); border-radius:2px; overflow:hidden; border:1px solid var(--border);}
+  .progress-fill{height:100%; width:0%; background:linear-gradient(90deg,var(--bull),var(--amber)); transition:width .15s ease;}
+  .ticker-tape{font-family:var(--mono); font-size:10.5px; color:var(--muted); height:16px; overflow:hidden; white-space:nowrap; margin:8px 0 4px;}
+  .search-box{margin:14px 0;}
+  .search-box input{width:100%; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-family:var(--mono); font-size:13px;}
+
+  /* ---- checklist ---- */
+  .checklist-card{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px;}
+  .checklist-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .checklist-head h3{font-family:var(--disp); font-size:14.5px; margin:0;}
+  .checklist-reset{background:none; border:none; color:var(--muted); font-family:var(--mono); font-size:10.5px; cursor:pointer; text-decoration:underline;}
+  .cl-item{display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer;}
+  .cl-item:last-of-type{border-bottom:none;}
+  .cl-item input{margin-top:2px; width:16px; height:16px; flex-shrink:0;}
+  .cl-item span{font-size:13px; line-height:1.4;}
+  .cl-result{margin-top:14px; padding:12px 14px; border-radius:8px; background:var(--panel-2); border:1px solid var(--border);}
+  .cl-bar-track{height:8px; border-radius:4px; background:var(--border); overflow:hidden; margin-bottom:8px;}
+  .cl-bar-fill{height:100%; border-radius:4px; transition:width .25s ease;}
+  .cl-pct-row{display:flex; justify-content:space-between; align-items:center; font-family:var(--mono);}
+  .cl-pct{font-size:18px; font-weight:700;}
+  .cl-comment{font-family:var(--disp); font-weight:700; font-size:13px; padding:4px 10px; border-radius:20px;}
+  .cl-comment.dont{background:var(--bear-dim); color:var(--bear);}
+  .cl-comment.partial{background:var(--amber-dim); color:var(--amber);}
+  .cl-comment.better{background:var(--bull-dim); color:var(--bull);}
+  .cl-comment.outstanding{background:var(--bull); color:#06120C;}
+
+  .section-head{display:flex; align-items:baseline; gap:10px; margin:26px 0 12px;}
+  .section-head:first-of-type{margin-top:6px;}
+  .section-head h2{font-family:var(--disp); font-size:15.5px; margin:0; font-weight:600;}
+  .section-head .count{font-family:var(--mono); font-size:11px; color:var(--muted); background:var(--panel-2); border:1px solid var(--border); padding:2px 7px; border-radius:20px;}
+  .section-head .line{flex:1; height:1px; background:var(--border);}
+  .empty{color:var(--muted); font-size:12.5px; font-family:var(--mono); border:1px dashed var(--border); border-radius:8px; padding:20px; text-align:center;}
+
+  .grid{display:grid; grid-template-columns:1fr; gap:11px;}
+  @media(min-width:560px){ .grid{grid-template-columns:repeat(2,1fr);} }
+
+  .rcard{background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 15px 12px; position:relative; overflow:hidden;}
+  .rcard.at-level{border-color:rgba(242,184,75,0.5); box-shadow:0 0 0 1px rgba(242,184,75,0.12) inset;}
+  .rcard.filtered-out{display:none;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+  .sym{font-family:var(--disp); font-weight:700; font-size:16px;}
+  .rank{font-family:var(--mono); font-size:9.5px; color:var(--muted); display:block; margin-top:2px;}
+  .card-top-right{display:flex; align-items:center; gap:8px;}
+  .star-btn{background:none; border:none; font-size:16px; cursor:pointer; color:var(--muted); line-height:1; padding:2px;}
+  .star-btn.active{color:var(--amber);}
+  .badge{font-family:var(--mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; padding:3px 8px; border-radius:20px; text-transform:uppercase;}
+  .badge.bull{background:var(--bull-dim); color:var(--bull); border:1px solid rgba(34,212,138,0.35);}
+  .badge.bear{background:var(--bear-dim); color:var(--bear); border:1px solid rgba(255,85,102,0.35);}
+  .row{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; padding:2.5px 0; color:var(--muted);}
+  .row b{color:var(--text); font-weight:500;}
+  .row .hl{color:var(--amber); font-weight:600;}
+  .row .rr-good{color:var(--bull); font-weight:600;}
+  .row .rr-bad{color:var(--bear); font-weight:600;}
+  .at-tag{position:absolute; top:11px; right:-30px; transform:rotate(40deg); background:var(--amber); color:#231603; font-family:var(--mono); font-weight:700; font-size:9px; padding:2px 34px; letter-spacing:0.1em;}
+  .divider{border-top:1px solid var(--border); margin:8px 0;}
+  .card-actions{display:flex; gap:8px; margin-top:9px;}
+  .mini-btn{flex:1; background:var(--panel-2); border:1px solid var(--border); border-radius:6px; padding:7px 8px; font-family:var(--mono); font-size:10.5px; text-align:center; cursor:pointer; color:var(--muted); text-decoration:none;}
+  .mini-btn:hover{color:var(--text);}
+  .h4-box{margin-top:8px; padding:8px 9px; background:var(--panel-2); border-radius:7px; font-family:var(--mono); font-size:11px; color:var(--muted); display:none;}
+  .h4-box.open{display:block;}
+  .chart-box{height:190px; margin:10px 0; border-radius:8px; overflow:hidden; background:var(--panel-2); border:1px solid var(--border);}
+  .chart-legend{display:flex; gap:12px; font-family:var(--mono); font-size:9.5px; color:var(--muted); margin-top:4px; flex-wrap:wrap;}
+  .chart-legend span{display:flex; align-items:center; gap:4px;}
+  .chart-legend i{width:8px; height:2px; display:inline-block;}
+
+  /* ---- watchlist / journal rows ---- */
+  .wl-add{display:flex; gap:8px; margin-bottom:16px;}
+  .wl-add input{flex:1; background:var(--panel-2); border:1px solid var(--border); border-radius:7px; padding:10px 11px; font-family:var(--mono); font-size:13px; text-transform:uppercase;}
+  .wl-add button{background:var(--bull); border:none; border-radius:7px; padding:0 16px; color:#06120C; font-weight:700; cursor:pointer;}
+  .wl-row{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--panel); border:1px solid var(--border); border-radius:9px; margin-bottom:8px;}
+  .wl-row .sym{font-size:14px;}
+  .wl-row .status{font-family:var(--mono); font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .wl-row .rm{background:none; border:none; color:var(--bear); font-size:17px; cursor:pointer; padding:4px;}
+
+  .journal-entry{background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:13px 15px; margin-bottom:10px;}
+  .je-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .je-sym{font-family:var(--disp); font-weight:700; font-size:14.5px;}
+  .je-date{font-family:var(--mono); font-size:10.5px; color:var(--muted);}
+  .je-notes{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.4;}
+  .je-del{background:none; border:none; color:var(--bear); font-family:var(--mono); font-size:10.5px; cursor:pointer; margin-top:8px;}
+
+  .strategy-block{margin-bottom:20px;}
+  .strategy-block h3{font-family:var(--disp); font-size:14px; margin:0 0 6px; color:var(--bull);}
+  .strategy-block ul{margin:0; padding-left:18px; font-size:13px; color:var(--muted); line-height:1.6;}
+  .strategy-block p{font-size:13px; color:var(--muted); line-height:1.6; margin:4px 0 0;}
+
+  footer.note{font-family:var(--mono); font-size:10.5px; color:var(--muted); line-height:1.6; border-top:1px solid var(--border); padding-top:14px; margin-top:26px;}
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="splash">
+  <img src="logo-splash.png" alt="Filler logo">
+  <div class="splash-slogan">Filler is for filter the noise to narrow the scope.</div>
+</div>
+
+<!-- ============ HOME ============ -->
+<section class="screen active" id="screen-home">
+  <div class="topbar">
+    <div class="eyebrow"><span class="dot"></span>DASHBOARD</div>
+    <h1><img src="icon-192.png" alt=""> Filler</h1>
+  </div>
+  <div style="padding:18px 20px 0;">
+    <div class="home-tabs">
+      <button class="home-tab active" id="tabOverviewBtn" onclick="switchHomeTab('overview')">Overview</button>
+      <button class="home-tab" id="tabNewsBtn" onclick="switchHomeTab('news')">News</button>
+    </div>
+
+    <div id="homeOverview">
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="statToday">0</div><div class="lbl">Setups today</div></div>
+        <div class="stat"><div class="num" id="statCoin">—</div><div class="lbl">Most active</div></div>
+        <div class="stat"><div class="num" id="statTime">—</div><div class="lbl">Last scan</div></div>
+      </div>
+
+      <div class="section-title">Scanners</div>
+      <div class="scanner-tile" onclick="showScreen('scanner')">
+        <div><div class="name">0.786 Continuation</div><div class="desc">Swing structure + fib retracement · 1H</div></div>
+        <div class="chev">›</div>
+      </div>
+      <div class="scanner-tile" style="opacity:0.45; cursor:default;">
+        <div><div class="name">More coming soon</div><div class="desc">New scanner types slot in here</div></div>
+        <div class="chev">＋</div>
+      </div>
+
+      <div class="section-title">Reference</div>
+      <button class="link-btn" onclick="showScreen('watchlist')">⭐ Watchlist</button>
+    </div>
+
+    <div id="homeNews" style="display:none;">
+      <div class="news-toolbar">
+        <span class="news-status" id="newsStatus">Tap refresh to load the last 24h of crypto news.</span>
+        <button class="mini-btn" style="flex:none; padding:7px 12px;" onclick="fetchNews()">Refresh ↻</button>
+      </div>
+      <div id="newsList"><div class="empty">No news loaded yet.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCANNER ============ -->
+<section class="screen" id="screen-scanner">
+  <div class="topbar">
+    <div class="eyebrow"><span class="dot"></span>LIVE BINANCE USDT · 1H STRUCTURE SCAN</div>
+    <h1>0.786 Continuation Scanner</h1>
+  </div>
+  <div style="padding:16px 20px 0;">
+    <button class="link-btn" onclick="openStrategy()">📋 View strategy rules</button>
+
+    <div class="checklist-card">
+      <div class="checklist-head"><h3>Trade Qualification Checklist</h3><button class="checklist-reset" onclick="resetChecklist()">Reset</button></div>
+      <div id="checklistItems"></div>
+      <div class="cl-result">
+        <div class="cl-bar-track"><div class="cl-bar-fill" id="clBarFill"></div></div>
+        <div class="cl-pct-row">
+          <span class="cl-pct" id="clPct">0%</span>
+          <span class="cl-comment dont" id="clComment">Don't take</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <div class="field"><label>Pairs to scan</label><input type="number" id="symLimit" value="150" min="10" max="500" step="10"></div>
+      <div class="field"><label>Band low</label><input type="number" id="bandLow" value="0.780" min="0.6" max="0.95" step="0.001"></div>
+      <div class="field"><label>Band high</label><input type="number" id="bandHigh" value="0.800" min="0.6" max="0.95" step="0.001"></div>
+      <div class="field"><label>Sensitivity</label><input type="number" id="fractalN" value="3" min="2" max="6" step="1"></div>
+      <button class="btn" id="scanBtn" style="width:auto; flex:1; min-width:120px;">Run Scan</button>
+      <div class="status-line">
+        <span id="statusText">idle</span>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </div>
+    <div class="ticker-tape" id="tickerTape"></div>
+
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Search a coin in the results…" oninput="applySearchFilter()"></div>
+
+    <div class="section-head"><h2>At 0.786 — Long</h2><span class="count" id="cntBull">0</span><div class="line"></div></div>
+    <div class="grid" id="bullGrid"><div class="empty">Run a scan to populate.</div></div>
+
+    <div class="section-head"><h2>At 0.786 — Short</h2><span class="count" id="cntBear">0</span><div class="line"></div></div>
+    <div class="grid" id="bearGrid"><div class="empty">Run a scan to populate.</div></div>
+
+    <div class="section-head"><h2>Approaching 0.786</h2><span class="count" id="cntWatch">0</span><div class="line"></div></div>
+    <div class="grid" id="watchGrid"><div class="empty">Run a scan to populate.</div></div>
+
+    <footer class="note">Fractal swing structure, BOS confirmation, fib drawn across the last leg. 4H trend filter and volatility filter (if enabled in Settings) are applied before results are shown. Each card's chart shows the 1H candles with swing 0, swing 1, and the 0.786 level marked. RR uses your stop buffer % and risk settings from Settings. Heuristic screen — confirm on the chart before entering.</footer>
+  </div>
+</section>
+
+<!-- ============ WATCHLIST ============ -->
+<section class="screen" id="screen-watchlist">
+  <div class="topbar"><div class="eyebrow"><span class="dot"></span>TRACKED COINS</div><h1>Watchlist</h1></div>
+  <div style="padding:16px 20px 0;">
+    <div class="wl-add">
+      <input type="text" id="wlInput" placeholder="e.g. SOL or SOLUSDT">
+      <button onclick="addToWatchlist()">Add</button>
+    </div>
+    <div id="wlList"><div class="empty">No coins tracked yet — add one above or tap ★ on any scan result.</div></div>
+    <footer class="note">Starred and manually added coins are always included in your scans, regardless of their volume rank, and stay listed here even when they're not currently in a setup.</footer>
+  </div>
+</section>
+
+<!-- ============ JOURNAL ============ -->
+<section class="screen" id="screen-journal">
+  <div class="topbar"><div class="eyebrow"><span class="dot"></span>YOUR TRADES</div><h1>Journal</h1></div>
+  <div style="padding:16px 20px 0;">
+    <div class="card" style="margin-bottom:18px;">
+      <div class="field-row">
+        <div class="field"><label>Symbol</label><input type="text" id="jeSymbol" placeholder="BTCUSDT"></div>
+        <div class="field"><label>Direction</label>
+          <select id="jeDirection"><option value="long">Long</option><option value="short">Short</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Entry</label><input type="number" id="jeEntry" step="any"></div>
+        <div class="field"><label>Stop</label><input type="number" id="jeStop" step="any"></div>
+        <div class="field"><label>Target</label><input type="number" id="jeTarget" step="any"></div>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="jeDate"></div>
+      <div class="field"><label>Notes</label><textarea id="jeNotes" placeholder="Setup notes, confirmation used, etc."></textarea></div>
+      <button class="btn" onclick="addJournalEntry()">Save trade</button>
+    </div>
+    <div id="journalList"><div class="empty">No trades logged yet.</div></div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section class="screen" id="screen-settings">
+  <div class="topbar"><div class="eyebrow"><span class="dot"></span>PREFERENCES</div><h1>Settings</h1></div>
+  <div style="padding:16px 20px 0;">
+
+    <div class="section-title">Appearance</div>
+    <div class="card">
+      <div class="switch-row">
+        <div><div class="lbl">Light mode</div><div class="sub">Switch off the dark theme</div></div>
+        <label class="switch"><input type="checkbox" id="setTheme" onchange="onThemeToggle()"><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="section-title">Filters</div>
+    <div class="card">
+      <div class="switch-row">
+        <div><div class="lbl">4H trend filter</div><div class="sub">Only show 1H setups where 4H structure agrees</div></div>
+        <label class="switch"><input type="checkbox" id="setEnable4h"><span class="slider"></span></label>
+      </div>
+      <div class="switch-row">
+        <div><div class="lbl">Volatility filter</div><div class="sub">Hide low-volume, barely-moving coins</div></div>
+        <label class="switch"><input type="checkbox" id="setEnableVol"><span class="slider"></span></label>
+      </div>
+      <div class="field" style="margin-top:12px;"><label>Min 24h volume (USDT)</label><input type="number" id="setMinVol" step="100000"></div>
+      <div class="field" style="margin-bottom:0;"><label>Min 24h change (%)</label><input type="number" id="setMinChange" step="0.1"></div>
+    </div>
+
+    <div class="section-title">Auto-refresh</div>
+    <div class="card">
+      <div class="switch-row">
+        <div><div class="lbl">Auto-refresh scanner</div><div class="sub">Re-run the scan on a timer while the app is open</div></div>
+        <label class="switch"><input type="checkbox" id="setAutoRefresh"><span class="slider"></span></label>
+      </div>
+      <div class="field" style="margin-top:12px; margin-bottom:0;"><label>Interval (minutes)</label><input type="number" id="setRefreshMins" min="1" max="60"></div>
+    </div>
+
+    <div class="section-title">Risk / reward calculator</div>
+    <div class="card">
+      <div class="field"><label>Stop-loss buffer (%)</label><input type="number" id="setSlBuffer" step="0.1"></div>
+      <div class="field"><label>Account size (optional, USDT)</label><input type="number" id="setAccountSize" step="10"></div>
+      <div class="field" style="margin-bottom:0;"><label>Risk per trade (%)</label><input type="number" id="setRiskPct" step="0.1"></div>
+    </div>
+
+    <button class="btn" style="margin-top:18px;" onclick="saveSettings()">Save settings</button>
+    <button class="btn secondary" style="margin-top:10px;" onclick="openStrategy()">View strategy rules</button>
+  </div>
+</section>
+
+<!-- ============ STRATEGY (overlay screen) ============ -->
+<section class="screen" id="screen-strategy">
+  <div class="topbar">
+    <button class="back-btn" onclick="closeStrategy()">←</button>
+    <h1 style="margin-top:8px;">Strategy Rules</h1>
+  </div>
+  <div style="padding:16px 20px 0;">
+    <div class="strategy-block">
+      <h3>0.786 Fibonacci Continuation</h3>
+      <p>Trade in the direction of the trend. Follow the pullback. Enter with precision.</p>
+    </div>
+    <div class="strategy-block">
+      <h3>1. Market condition</h3>
+      <ul><li>Market must be in a clear uptrend or downtrend</li><li>Use 4H or 1H for analysis</li><li>Avoid sideways / choppy markets</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>2. Draw Fibonacci</h3>
+      <ul><li>From the last swing low (0) to the last swing high (1) — or the reverse in a downtrend</li><li>Focus on the 0.786 retracement level</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>3. Entry Type 1 — Direct</h3>
+      <ul><li>Price pulls back to 0.786</li><li>Enter directly in the 0.786 area</li><li>No lower-timeframe confirmation needed</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>4. Entry Type 2 — Confirmation (LTF)</h3>
+      <ul><li>Price pulls back to 0.786</li><li>Switch to 5M / 1M</li><li>Wait for a Change of Character (CHoCH)</li><li>Find an FVG or OB at the CHoCH area</li><li>Enter from the FVG / OB</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>5. Stop loss</h3>
+      <ul><li>Type 1: below the swing low / fib level 1 (small buffer)</li><li>Type 2: below the OB or CHoCH swing low (small buffer)</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>6. Take profit</h3>
+      <ul><li>Last swing high (fib level 0)</li><li>Minimum RR 1:3 or higher</li></ul>
+    </div>
+    <div class="strategy-block">
+      <h3>7. Risk management</h3>
+      <ul><li>Minimum RR must be 1:3 — only take trades that meet or exceed it</li><li>Never risk more than 1–2% of capital on a single trade</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="bottom-nav">
+  <button class="navbtn active" data-screen="home" onclick="showScreen('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home
+  </button>
+  <button class="navbtn" data-screen="scanner" onclick="showScreen('scanner')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Scanner
+  </button>
+  <button class="navbtn" data-screen="watchlist" onclick="showScreen('watchlist')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6.5 7 .8-5.2 4.8L18.2 21 12 17.4 5.8 21l1.4-6.9L2 8.3l7-.8z"/></svg>Watchlist
+  </button>
+  <button class="navbtn" data-screen="journal" onclick="showScreen('journal')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3V4z"/><path d="M4 19V4"/></svg>Journal
+  </button>
+  <button class="navbtn" data-screen="settings" onclick="showScreen('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09A1.7 1.7 0 009 19.4a1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.51 1z"/></svg>Settings
+  </button>
+</nav>
+
+<script>
+/* ================= STATE ================= */
+const DEFAULT_SETTINGS = {
+  theme:'dark', enable4h:true, enableVol:true, minVolUSD:1000000, minChangePct:1,
+  autoRefresh:false, refreshMins:5, slBuffer:0.3, accountSize:'', riskPct:1
+};
+let settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('scanner_settings')||'{}') };
+let watchlist = new Set(JSON.parse(localStorage.getItem('scanner_watchlist')||'[]'));
+let journal = JSON.parse(localStorage.getItem('scanner_journal')||'[]');
+let currentScreen = 'home';
+let lastResults = [];
+let klineCache4h = new Map();
+let candleCache1h = new Map();
+let autoTimer = null;
+const BINANCE = 'https://api.binance.com';
+
+/* ================= NAVIGATION (with back-button support) ================= */
+function showScreen(name, fromPopstate){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+  currentScreen = name;
+  window.scrollTo(0,0);
+  if(!fromPopstate) history.pushState({screen:name}, '', '#'+name);
+  if(name==='home') renderHome();
+  if(name==='watchlist') renderWatchlist();
+  if(name==='journal') renderJournal();
+  if(name==='settings') loadSettingsForm();
+  if(name==='scanner') renderChecklist();
+}
+function openStrategy(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-strategy').classList.add('active');
+  window.scrollTo(0,0);
+  history.pushState({screen:'strategy'}, '', '#strategy');
+}
+function closeStrategy(){ history.back(); }
+
+window.addEventListener('popstate', (e)=>{
+  const screen = (e.state && e.state.screen) || 'home';
+  if(screen === 'strategy'){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-strategy').classList.add('active');
+  } else {
+    showScreen(screen, true);
+  }
+});
+
+/* ================= CHECKLIST ================= */
+const CHECKLIST_ITEMS = [
+  "Market is in a clear trend (not sideways/choppy)",
+  "Fibonacci drawn from the correct swing (0 to 1)",
+  "Price has retraced into the 0.786 zone",
+  "Healthy pullback with strong volatility on the impulse leg",
+  "Clean structure & liquidity (no messy chop)",
+  "Entry trigger confirmed — direct 0.786 or CHoCH + FVG/OB",
+  "Stop loss placed below the key level with a buffer",
+  "Take profit set at the swing high/low (fib 0)",
+  "Minimum 1:3 risk-to-reward achieved"
+];
+let checklistState = JSON.parse(localStorage.getItem('filler_checklist')||'null') || CHECKLIST_ITEMS.map(()=>false);
+
+function renderChecklist(){
+  const container = document.getElementById('checklistItems');
+  container.innerHTML = CHECKLIST_ITEMS.map((text,i)=>`
+    <label class="cl-item">
+      <input type="checkbox" data-idx="${i}" ${checklistState[i]?'checked':''} onchange="toggleChecklistItem(${i})">
+      <span>${text}</span>
+    </label>`).join('');
+  updateChecklistResult();
+}
+function toggleChecklistItem(i){
+  checklistState[i] = !checklistState[i];
+  localStorage.setItem('filler_checklist', JSON.stringify(checklistState));
+  updateChecklistResult();
+}
+function resetChecklist(){
+  checklistState = CHECKLIST_ITEMS.map(()=>false);
+  localStorage.setItem('filler_checklist', JSON.stringify(checklistState));
+  renderChecklist();
+}
+function updateChecklistResult(){
+  const checked = checklistState.filter(Boolean).length;
+  const pct = Math.round((checked/CHECKLIST_ITEMS.length)*100);
+  document.getElementById('clPct').textContent = pct+'%';
+  document.getElementById('clBarFill').style.width = pct+'%';
+  const commentEl = document.getElementById('clComment');
+  let cls, label, color;
+  if(pct < 40){ cls='dont'; label="Don't take"; color='var(--bear)'; }
+  else if(pct < 70){ cls='partial'; label='Partially ok'; color='var(--amber)'; }
+  else if(pct < 90){ cls='better'; label='Better'; color='var(--bull)'; }
+  else { cls='outstanding'; label='Outstanding'; color='var(--bull)'; }
+  commentEl.className = 'cl-comment ' + cls;
+  commentEl.textContent = label;
+  document.getElementById('clBarFill').style.background = color;
+}
+
+/* ================= NEWS ================= */
+let newsLoadedOnce = false;
+let kucoinPriceCache = new Map();
+const GENERIC_CATEGORIES = new Set(['TRADING','MARKET','REGULATION','MINING','ICO','BLOCKCHAIN','TECHNOLOGY','BUSINESS','EXCHANGE','SPONSORED','ALTCOIN','FIAT','COMMODITY','OPINION','WORLD','NORTHAMERICA','EUROPE','ASIA','SEC','ETF','DEFI','NFT']);
+
+function switchHomeTab(tab){
+  document.getElementById('tabOverviewBtn').classList.toggle('active', tab==='overview');
+  document.getElementById('tabNewsBtn').classList.toggle('active', tab==='news');
+  document.getElementById('homeOverview').style.display = tab==='overview' ? 'block' : 'none';
+  document.getElementById('homeNews').style.display = tab==='news' ? 'block' : 'none';
+  if(tab==='news' && !newsLoadedOnce) fetchNews();
+}
+
+function esc(s){ const d=document.createElement('div'); d.textContent = s||''; return d.innerHTML; }
+
+function timeAgo(unixSeconds){
+  const diffMin = Math.floor((Date.now()/1000 - unixSeconds)/60);
+  if(diffMin < 1) return 'just now';
+  if(diffMin < 60) return diffMin + 'm ago';
+  return Math.floor(diffMin/60) + 'h ago';
+}
+
+function detectCoin(article){
+  const raw = (article.categories||'').split('|').join(',');
+  const cats = raw.split(',').map(c=>c.trim().toUpperCase()).filter(Boolean);
+  for(const c of cats){
+    if(!GENERIC_CATEGORIES.has(c) && /^[A-Z0-9]{2,6}$/.test(c)) return c;
+  }
+  return null;
+}
+
+async function getKucoinStats(ticker){
+  if(kucoinPriceCache.has(ticker)) return kucoinPriceCache.get(ticker);
+  try{
+    const res = await fetch(`https://api.kucoin.com/api/v1/market/stats?symbol=${ticker}-USDT`);
+    const json = await res.json();
+    const d = json.data;
+    if(!d || !d.last){ kucoinPriceCache.set(ticker, null); return null; }
+    const stats = { last: parseFloat(d.last), changeRate: parseFloat(d.changeRate)*100 };
+    kucoinPriceCache.set(ticker, stats);
+    return stats;
+  }catch(e){ kucoinPriceCache.set(ticker, null); return null; }
+}
+
+async function renderNewsCard(article){
+  const coin = detectCoin(article);
+  let priceLine = '';
+  if(coin){
+    const stats = await getKucoinStats(coin);
+    if(stats){
+      priceLine = `<div class="news-price-row">
+        <span>${coin}/USDT <b>${fmtPrice(stats.last)}</b></span>
+        <span class="${stats.changeRate>=0?'rr-good':'rr-bad'}">${stats.changeRate>=0?'+':''}${stats.changeRate.toFixed(2)}% 24h (KuCoin)</span>
+      </div>`;
+    }
+  }
+  const bodyText = article.body || '';
+  const snippet = esc(bodyText.slice(0,150).trim()) + (bodyText.length>150 ? '…' : '');
+  const source = (article.source_info && article.source_info.name) || article.source || 'Source';
+  return `<div class="news-card">
+    <div class="news-top">
+      <span class="news-coin ${coin?'':'none'}">${coin ? '$'+coin : 'General'}</span>
+      <span class="news-meta">${esc(source)} · ${timeAgo(article.published_on)}</span>
+    </div>
+    <div class="news-title">${esc(article.title)}</div>
+    <div class="news-snippet">${snippet}</div>
+    ${priceLine}
+    <div class="card-actions">
+      <a class="mini-btn" href="${article.url}" target="_blank" rel="noopener">Read source ↗</a>
+      ${coin ? `<a class="mini-btn" href="https://www.tradingview.com/chart/?symbol=KUCOIN:${coin}USDT" target="_blank" rel="noopener">View chart ↗</a>` : ''}
+    </div>
+  </div>`;
+}
+
+async function fetchNews(){
+  newsLoadedOnce = true;
+  const statusEl = document.getElementById('newsStatus');
+  const listEl = document.getElementById('newsList');
+  statusEl.textContent = 'Loading news…';
+  listEl.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN');
+    const data = await res.json();
+    const items = data.Data || [];
+    const cutoff = Math.floor(Date.now()/1000) - 86400;
+    const recent = items.filter(a => a.published_on >= cutoff);
+    if(recent.length === 0){
+      listEl.innerHTML = '<div class="empty">No crypto news in the last 24 hours from this source.</div>';
+      statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+      return;
+    }
+    kucoinPriceCache.clear();
+    const cards = await Promise.all(recent.map(renderNewsCard));
+    listEl.innerHTML = cards.join('');
+    statusEl.textContent = `${recent.length} articles · updated ${new Date().toLocaleTimeString()}`;
+  }catch(e){
+    listEl.innerHTML = '<div class="empty">Could not load news right now — try again shortly.</div>';
+    statusEl.textContent = 'Failed to load';
+  }
+}
+
+/* ================= SETTINGS ================= */
+function applyTheme(theme){ document.body.setAttribute('data-theme', theme); document.documentElement.setAttribute('data-theme', theme); }
+function loadSettingsForm(){
+  document.getElementById('setTheme').checked = settings.theme==='light';
+  document.getElementById('setEnable4h').checked = settings.enable4h;
+  document.getElementById('setEnableVol').checked = settings.enableVol;
+  document.getElementById('setMinVol').value = settings.minVolUSD;
+  document.getElementById('setMinChange').value = settings.minChangePct;
+  document.getElementById('setAutoRefresh').checked = settings.autoRefresh;
+  document.getElementById('setRefreshMins').value = settings.refreshMins;
+  document.getElementById('setSlBuffer').value = settings.slBuffer;
+  document.getElementById('setAccountSize').value = settings.accountSize;
+  document.getElementById('setRiskPct').value = settings.riskPct;
+}
+function onThemeToggle(){ applyTheme(document.getElementById('setTheme').checked ? 'light' : 'dark'); }
+function saveSettings(){
+  settings = {
+    theme: document.getElementById('setTheme').checked ? 'light' : 'dark',
+    enable4h: document.getElementById('setEnable4h').checked,
+    enableVol: document.getElementById('setEnableVol').checked,
+    minVolUSD: parseFloat(document.getElementById('setMinVol').value) || 0,
+    minChangePct: parseFloat(document.getElementById('setMinChange').value) || 0,
+    autoRefresh: document.getElementById('setAutoRefresh').checked,
+    refreshMins: Math.max(1, parseInt(document.getElementById('setRefreshMins').value) || 5),
+    slBuffer: parseFloat(document.getElementById('setSlBuffer').value) || 0.3,
+    accountSize: document.getElementById('setAccountSize').value,
+    riskPct: parseFloat(document.getElementById('setRiskPct').value) || 1
+  };
+  localStorage.setItem('scanner_settings', JSON.stringify(settings));
+  applyTheme(settings.theme);
+  setupAutoRefresh();
+  const btn = event.target; const old = btn.textContent;
+  btn.textContent = 'Saved ✓'; setTimeout(()=>btn.textContent=old, 1200);
+}
+function setupAutoRefresh(){
+  if(autoTimer) clearInterval(autoTimer);
+  if(settings.autoRefresh){ autoTimer = setInterval(()=>{ runScan(true); }, settings.refreshMins*60000); }
+}
+
+/* ================= WATCHLIST ================= */
+function persistWatchlist(){ localStorage.setItem('scanner_watchlist', JSON.stringify([...watchlist])); }
+function toggleWatch(symbol){
+  if(watchlist.has(symbol)) watchlist.delete(symbol); else watchlist.add(symbol);
+  persistWatchlist();
+  document.querySelectorAll(`[data-symbol="${symbol}"] .star-btn`).forEach(b=>b.classList.toggle('active', watchlist.has(symbol)));
+  if(currentScreen==='watchlist') renderWatchlist();
+}
+function addToWatchlist(){
+  const input = document.getElementById('wlInput');
+  let sym = input.value.trim().toUpperCase();
+  if(!sym) return;
+  if(!sym.endsWith('USDT')) sym += 'USDT';
+  watchlist.add(sym);
+  persistWatchlist();
+  input.value = '';
+  renderWatchlist();
+}
+function renderWatchlist(){
+  const list = document.getElementById('wlList');
+  if(watchlist.size===0){ list.innerHTML = '<div class="empty">No coins tracked yet — add one above or tap ★ on any scan result.</div>'; return; }
+  list.innerHTML = [...watchlist].map(sym=>{
+    const r = lastResults.find(x=>x.symbol===sym);
+    let status = 'Not scanned yet';
+    if(r){
+      if(r.inBand) status = (r.direction==='bull'?'At 0.786 — Long':'At 0.786 — Short');
+      else status = 'Approaching (' + r.distancePct.toFixed(1) + '% away)';
+    }
+    return `<div class="wl-row">
+      <div><div class="sym">${sym.replace('USDT','')}/USDT</div><div class="status">${status}</div></div>
+      <button class="rm" onclick="removeFromWatchlist('${sym}')">✕</button>
+    </div>`;
+  }).join('');
+}
+function removeFromWatchlist(sym){ watchlist.delete(sym); persistWatchlist(); renderWatchlist(); }
+
+/* ================= JOURNAL ================= */
+function persistJournal(){ localStorage.setItem('scanner_journal', JSON.stringify(journal)); }
+function addJournalEntry(){
+  const symbol = document.getElementById('jeSymbol').value.trim().toUpperCase();
+  const direction = document.getElementById('jeDirection').value;
+  const entry = parseFloat(document.getElementById('jeEntry').value);
+  const stop = parseFloat(document.getElementById('jeStop').value);
+  const target = parseFloat(document.getElementById('jeTarget').value);
+  const date = document.getElementById('jeDate').value || new Date().toISOString().slice(0,10);
+  const notes = document.getElementById('jeNotes').value.trim();
+  if(!symbol || isNaN(entry) || isNaN(stop) || isNaN(target)){ alert('Symbol, entry, stop and target are required.'); return; }
+  journal.unshift({ id:Date.now(), symbol, direction, entry, stop, target, date, notes });
+  persistJournal();
+  ['jeSymbol','jeEntry','jeStop','jeTarget','jeNotes'].forEach(id=>document.getElementById(id).value='');
+  renderJournal();
+}
+function deleteJournalEntry(id){ journal = journal.filter(j=>j.id!==id); persistJournal(); renderJournal(); }
+function prefillJournal(symbol, direction, entry, stop, target){
+  showScreen('journal');
+  document.getElementById('jeSymbol').value = symbol;
+  document.getElementById('jeDirection').value = direction;
+  document.getElementById('jeEntry').value = entry;
+  document.getElementById('jeStop').value = stop;
+  document.getElementById('jeTarget').value = target;
+  document.getElementById('jeDate').value = new Date().toISOString().slice(0,10);
+}
+function renderJournal(){
+  const list = document.getElementById('journalList');
+  if(journal.length===0){ list.innerHTML = '<div class="empty">No trades logged yet.</div>'; return; }
+  list.innerHTML = journal.map(j=>{
+    const risk = Math.abs(j.entry-j.stop);
+    const reward = Math.abs(j.target-j.entry);
+    const rr = risk>0 ? (reward/risk).toFixed(2) : '—';
+    return `<div class="journal-entry">
+      <div class="je-top">
+        <div class="je-sym">${j.symbol.replace('USDT','')}/USDT <span class="badge ${j.direction==='long'?'bull':'bear'}">${j.direction}</span></div>
+        <div class="je-date">${j.date}</div>
+      </div>
+      <div class="row"><span>Entry</span><b>${j.entry}</b></div>
+      <div class="row"><span>Stop</span><b>${j.stop}</b></div>
+      <div class="row"><span>Target</span><b>${j.target}</b></div>
+      <div class="row"><span>RR</span><span class="${rr!=='—' && rr>=3 ? 'rr-good':'rr-bad'}">1 : ${rr}</span></div>
+      ${j.notes ? `<div class="je-notes">${j.notes}</div>` : ''}
+      <button class="je-del" onclick="deleteJournalEntry(${j.id})">Delete</button>
+    </div>`;
+  }).join('');
+}
+
+/* ================= HOME ================= */
+function renderHome(){
+  const stats = JSON.parse(localStorage.getItem('scanner_stats')||'{}');
+  const today = new Date().toDateString();
+  if(stats.date === today){
+    document.getElementById('statToday').textContent = stats.count || 0;
+    let topCoin = '—', topCount = 0;
+    Object.entries(stats.coinCounts||{}).forEach(([sym,c])=>{ if(c>topCount){topCount=c; topCoin=sym.replace('USDT','');} });
+    document.getElementById('statCoin').textContent = topCoin;
+  } else {
+    document.getElementById('statToday').textContent = '0';
+    document.getElementById('statCoin').textContent = '—';
+  }
+  document.getElementById('statTime').textContent = stats.lastScanTime ? new Date(stats.lastScanTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '—';
+}
+function updateStatsAfterScan(results){
+  const today = new Date().toDateString();
+  let stats = JSON.parse(localStorage.getItem('scanner_stats')||'{}');
+  if(stats.date !== today) stats = { date: today, count: 0, coinCounts: {} };
+  const hits = results.filter(r=>r.inBand);
+  stats.count += hits.length;
+  hits.forEach(r=>{ stats.coinCounts[r.symbol] = (stats.coinCounts[r.symbol]||0) + 1; });
+  stats.lastScanTime = new Date().toISOString();
+  localStorage.setItem('scanner_stats', JSON.stringify(stats));
+}
+
+/* ================= SCANNER CORE ================= */
+function fmtPrice(p){
+  if(p >= 1000) return p.toFixed(2);
+  if(p >= 1) return p.toFixed(4);
+  if(p >= 0.01) return p.toFixed(6);
+  return p.toPrecision(4);
+}
+function getCSS(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+
+async function getUniverse(limit){
+  const [exInfoRes, tickerRes] = await Promise.all([
+    fetch(`${BINANCE}/api/v3/exchangeInfo`), fetch(`${BINANCE}/api/v3/ticker/24hr`)
+  ]);
+  const exInfo = await exInfoRes.json();
+  const tickers = await tickerRes.json();
+  const validSymbols = new Set(
+    exInfo.symbols.filter(s=>s.status==='TRADING' && s.quoteAsset==='USDT' && s.isSpotTradingAllowed!==false)
+      .filter(s=>!/(UP|DOWN|BULL|BEAR)USDT$/.test(s.symbol)).map(s=>s.symbol)
+  );
+  let pool = tickers.filter(t=>validSymbols.has(t.symbol)).map(t=>({
+    symbol:t.symbol, volume:parseFloat(t.quoteVolume)||0, change:Math.abs(parseFloat(t.priceChangePercent)||0)
+  }));
+  if(settings.enableVol){ pool = pool.filter(t=>t.volume>=settings.minVolUSD && t.change>=settings.minChangePct); }
+  pool.sort((a,b)=>b.volume-a.volume);
+  const ranked = pool.slice(0, limit).map((t,i)=>({symbol:t.symbol, rank:i+1}));
+  const rankedSet = new Set(ranked.map(r=>r.symbol));
+  watchlist.forEach(sym=>{ if(!rankedSet.has(sym)) ranked.push({symbol:sym, rank:'WL'}); });
+  return ranked;
+}
+
+async function getKlines(symbol, interval, limit){
+  const res = await fetch(`${BINANCE}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
+  if(!res.ok) throw new Error('klines fetch failed');
+  const raw = await res.json();
+  return raw.map(k=>({ time:k[0], open:parseFloat(k[1]), high:parseFloat(k[2]), low:parseFloat(k[3]), close:parseFloat(k[4]) }));
+}
+
+function findSwings(candles, n){
+  const swings = [];
+  for(let i=n; i<candles.length-n; i++){
+    let isHigh=true, isLow=true;
+    for(let j=i-n; j<=i+n; j++){
+      if(j===i) continue;
+      if(candles[j].high >= candles[i].high) isHigh=false;
+      if(candles[j].low <= candles[i].low) isLow=false;
+    }
+    if(isHigh) swings.push({index:i, type:'high', price:candles[i].high});
+    if(isLow) swings.push({index:i, type:'low', price:candles[i].low});
+  }
+  swings.sort((a,b)=>a.index-b.index);
+  const cleaned = [];
+  for(const s of swings){
+    const last = cleaned[cleaned.length-1];
+    if(!last){ cleaned.push(s); continue; }
+    if(last.type===s.type){
+      if(s.type==='high' && s.price>last.price) cleaned[cleaned.length-1]=s;
+      if(s.type==='low' && s.price<last.price) cleaned[cleaned.length-1]=s;
+    } else cleaned.push(s);
+  }
+  return cleaned;
+}
+
+function structureDirection(swings){
+  if(swings.length<3) return null;
+  const last = swings[swings.length-1], prev = swings[swings.length-2], prevPrev = swings[swings.length-3];
+  if(last.type==='high' && prev.type==='low' && prevPrev.type==='high' && last.price>prevPrev.price)
+    return { direction:'bull', swing0:prev.price, swing1:last.price, swing0Idx:prev.index, swing1Idx:last.index };
+  if(last.type==='low' && prev.type==='high' && prevPrev.type==='low' && last.price<prevPrev.price)
+    return { direction:'bear', swing0:prev.price, swing1:last.price, swing0Idx:prev.index, swing1Idx:last.index };
+  return null;
+}
+
+function analyze(candles, fractalN, bandLow, bandHigh){
+  const swings = findSwings(candles, fractalN);
+  const st = structureDirection(swings);
+  if(!st) return null;
+  const { direction, swing0, swing1 } = st;
+  const lastPrice = candles[candles.length-1].close;
+  const range = Math.abs(swing1-swing0);
+  let level786, priceAtLow, priceAtHigh, invalidated;
+  if(direction==='bull'){
+    level786 = swing1 - range*0.786;
+    priceAtHigh = swing1 - range*bandLow;
+    priceAtLow = swing1 - range*bandHigh;
+    invalidated = lastPrice < swing0;
+  } else {
+    level786 = swing1 + range*0.786;
+    priceAtLow = swing1 + range*bandLow;
+    priceAtHigh = swing1 + range*bandHigh;
+    invalidated = lastPrice > swing0;
+  }
+  if(invalidated) return null;
+  const inBand = lastPrice>=priceAtLow && lastPrice<=priceAtHigh;
+  const distancePct = Math.abs(lastPrice-level786)/level786*100;
+  return { direction, swing0, swing1, level786, lastPrice, inBand, distancePct };
+}
+
+async function get4hDirection(symbol, fractalN){
+  if(klineCache4h.has(symbol)) return klineCache4h.get(symbol);
+  try{
+    const candles = await getKlines(symbol, '4h', 120);
+    const swings = findSwings(candles, fractalN);
+    const st = structureDirection(swings);
+    klineCache4h.set(symbol, st);
+    return st;
+  }catch(e){ return null; }
+}
+
+function rrForResult(r){
+  const stop = r.direction==='bull' ? r.swing0*(1-settings.slBuffer/100) : r.swing0*(1+settings.slBuffer/100);
+  const entry = r.level786;
+  const target = r.swing1;
+  const risk = Math.abs(entry-stop);
+  const reward = Math.abs(target-entry);
+  const rr = risk>0 ? reward/risk : 0;
+  let posLine = '';
+  if(settings.accountSize && parseFloat(settings.accountSize)>0 && risk>0){
+    const riskAmt = parseFloat(settings.accountSize)*settings.riskPct/100;
+    const units = riskAmt/risk;
+    posLine = `${units.toFixed(4)} units (~$${(units*entry).toFixed(2)})`;
+  }
+  return { entry, stop, target, rr, posLine };
+}
+
+function cardHTML(r){
+  const dirClass = r.direction==='bull'?'bull':'bear';
+  const dirLabel = r.direction==='bull'?'LONG':'SHORT';
+  const clampedDist = Math.min(r.distancePct, 15);
+  const barPct = 100 - (clampedDist/15*100);
+  const rrCalc = rrForResult(r);
+  const isFav = watchlist.has(r.symbol);
+  return `
+    <div class="rcard ${r.inBand?'at-level':''}" data-symbol="${r.symbol}">
+      ${r.inBand ? '<div class="at-tag">AT 0.786</div>' : ''}
+      <div class="card-top">
+        <div><span class="sym">${r.symbol.replace('USDT','')}<span style="color:var(--muted); font-weight:500;">/USDT</span></span><span class="rank">vol rank #${r.rank}</span></div>
+        <div class="card-top-right">
+          <button class="star-btn ${isFav?'active':''}" onclick="toggleWatch('${r.symbol}')">★</button>
+          <span class="badge ${dirClass}">${dirLabel}</span>
+        </div>
+      </div>
+      <div class="chart-box" id="chart-${r.symbol}"></div>
+      <div class="chart-legend">
+        <span><i style="background:var(--muted);"></i>Swing 0</span>
+        <span><i style="background:var(--amber);"></i>Swing 1</span>
+        <span><i style="background:${r.direction==='bull'?'var(--bull)':'var(--bear)'};"></i>0.786</span>
+      </div>
+      <div class="row"><span>Last price</span><b>${fmtPrice(r.lastPrice)}</b></div>
+      <div class="row"><span>Swing ${r.direction==='bull'?'low (0)':'high (0)'}</span><b>${fmtPrice(r.swing0)}</b></div>
+      <div class="row"><span>Swing ${r.direction==='bull'?'high (1)':'low (1)'}</span><b>${fmtPrice(r.swing1)}</b></div>
+      <div class="row"><span>0.786 level</span><span class="hl">${fmtPrice(r.level786)}</span></div>
+      <div class="row"><span>Distance to level</span><b>${r.distancePct.toFixed(2)}%</b></div>
+      <div class="dist-bar" style="height:5px; border-radius:3px; background:var(--panel-2); border:1px solid var(--border); position:relative; overflow:hidden; margin-top:6px;">
+        <div style="position:absolute; top:0; bottom:0; left:0; width:${barPct}%; background:${r.inBand?'var(--amber)':'var(--muted)'};"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="row"><span>Suggested stop</span><b>${fmtPrice(rrCalc.stop)}</b></div>
+      <div class="row"><span>Target</span><b>${fmtPrice(rrCalc.target)}</b></div>
+      <div class="row"><span>Risk : Reward</span><span class="${rrCalc.rr>=3?'rr-good':'rr-bad'}">1 : ${rrCalc.rr.toFixed(2)}${rrCalc.rr<3?' (below 1:3)':''}</span></div>
+      ${rrCalc.posLine ? `<div class="row"><span>Position size</span><b>${rrCalc.posLine}</b></div>` : ''}
+      ${r.h4 ? `<div class="row"><span>4H structure</span><b>${r.h4.direction==='bull'?'Bullish ✓':'Bearish ✓'}</b></div>` : ''}
+      <div class="h4-box" id="h4box-${r.symbol}"></div>
+      <div class="card-actions">
+        <div class="mini-btn" onclick="toggle4hView('${r.symbol}')">View 4H</div>
+        <div class="mini-btn" onclick="prefillJournal('${r.symbol}', '${r.direction==='bull'?'long':'short'}', ${rrCalc.entry}, ${rrCalc.stop}, ${rrCalc.target})">Log trade →</div>
+        <a class="mini-btn" href="https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}" target="_blank" rel="noopener">Chart ↗</a>
+      </div>
+    </div>`;
+}
+
+let currentFractalN = 3;
+
+async function toggle4hView(symbol){
+  const box = document.getElementById('h4box-'+symbol);
+  if(box.classList.contains('open')){ box.classList.remove('open'); return; }
+  box.classList.add('open');
+  box.textContent = 'Loading 4H structure…';
+  const st = await get4hDirection(symbol, currentFractalN);
+  if(!st){ box.textContent = 'No clear 4H structure right now.'; return; }
+  box.textContent = `4H: ${st.direction==='bull'?'bullish':'bearish'} · swing0 ${fmtPrice(st.swing0)} · swing1 ${fmtPrice(st.swing1)}`;
+}
+
+function renderChart(symbol){
+  const candles = candleCache1h.get(symbol);
+  const r = lastResults.find(x=>x.symbol===symbol);
+  const el = document.getElementById('chart-'+symbol);
+  if(!candles || !r || !el || el.dataset.rendered || typeof LightweightCharts==='undefined') return;
+  el.dataset.rendered = '1';
+  const chart = LightweightCharts.createChart(el, {
+    width: el.clientWidth, height: 190,
+    layout:{ background:{color:'transparent'}, textColor: getCSS('--muted') },
+    grid:{ vertLines:{color:getCSS('--border')}, horzLines:{color:getCSS('--border')} },
+    timeScale:{ borderColor:getCSS('--border'), timeVisible:true },
+    rightPriceScale:{ borderColor:getCSS('--border') },
+    crosshair:{ mode:0 },
+    handleScroll:false, handleScale:false
+  });
+  const series = chart.addCandlestickSeries({
+    upColor:getCSS('--bull'), downColor:getCSS('--bear'), borderVisible:false,
+    wickUpColor:getCSS('--bull'), wickDownColor:getCSS('--bear')
+  });
+  series.setData(candles.map(c=>({ time: Math.floor(c.time/1000), open:c.open, high:c.high, low:c.low, close:c.close })));
+  series.createPriceLine({ price:r.swing0, color:getCSS('--muted'), lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'0' });
+  series.createPriceLine({ price:r.swing1, color:getCSS('--amber'), lineWidth:1, lineStyle:2, axisLabelVisible:true, title:'1' });
+  series.createPriceLine({ price:r.level786, color: r.direction==='bull'?getCSS('--bull'):getCSS('--bear'), lineWidth:2, lineStyle:0, axisLabelVisible:true, title:'0.786' });
+  chart.timeScale().fitContent();
+}
+function renderAllCharts(results){
+  results.forEach(r=>{ try{ renderChart(r.symbol); }catch(e){} });
+}
+
+function applySearchFilter(){
+  const q = document.getElementById('searchInput').value.trim().toUpperCase();
+  document.querySelectorAll('.rcard').forEach(card=>{
+    const sym = card.dataset.symbol;
+    card.classList.toggle('filtered-out', q && !sym.includes(q));
+  });
+}
+
+async function runScan(silent){
+  if(!silent){
+    document.getElementById('bullGrid').innerHTML = '<div class="empty">Scanning…</div>';
+    document.getElementById('bearGrid').innerHTML = '<div class="empty">Scanning…</div>';
+    document.getElementById('watchGrid').innerHTML = '<div class="empty">Scanning…</div>';
+  }
+  const limit = Math.max(10, Math.min(500, parseInt(document.getElementById('symLimit').value)||150));
+  const bandLow = parseFloat(document.getElementById('bandLow').value)||0.78;
+  const bandHigh = parseFloat(document.getElementById('bandHigh').value)||0.80;
+  const fractalN = Math.max(2, Math.min(6, parseInt(document.getElementById('fractalN').value)||3));
+  currentFractalN = fractalN;
+
+  const btn = document.getElementById('scanBtn');
+  const statusText = document.getElementById('statusText');
+  const progressFill = document.getElementById('progressFill');
+  const tickerTape = document.getElementById('tickerTape');
+  btn.disabled = true; btn.textContent = 'Scanning…';
+  statusText.textContent = 'fetching universe…'; progressFill.style.width = '0%';
+
+  let universe;
+  try{ universe = await getUniverse(limit); }
+  catch(e){ statusText.textContent = 'failed to load symbol list'; btn.disabled=false; btn.textContent='Run Scan'; return; }
+
+  const results = [];
+  const CONCURRENCY = 6;
+  let completed = 0;
+  klineCache4h.clear();
+  candleCache1h.clear();
+
+  async function worker(queue){
+    while(queue.length){
+      const item = queue.shift();
+      tickerTape.textContent = 'scanning ' + item.symbol + '  ·  ' + queue.length + ' remaining…';
+      try{
+        const candles = await getKlines(item.symbol, '1h', 200);
+        if(candles.length > 20){
+          const r = analyze(candles, fractalN, bandLow, bandHigh);
+          if(r){
+            if(settings.enable4h){
+              const st = await get4hDirection(item.symbol, fractalN);
+              if(!st || st.direction !== r.direction){ completed++; progressFill.style.width=(completed/universe.length*100).toFixed(1)+'%'; statusText.textContent=`${completed} / ${universe.length} scanned`; continue; }
+              r.h4 = st;
+            }
+            candleCache1h.set(item.symbol, candles);
+            results.push({ symbol:item.symbol, rank:item.rank, ...r });
+          }
+        }
+      }catch(e){}
+      completed++;
+      progressFill.style.width = (completed/universe.length*100).toFixed(1)+'%';
+      statusText.textContent = `${completed} / ${universe.length} scanned`;
+    }
+  }
+  const queue = [...universe];
+  await Promise.all(Array.from({length:CONCURRENCY}, ()=>worker(queue)));
+
+  lastResults = results;
+  updateStatsAfterScan(results);
+
+  const bull = results.filter(r=>r.direction==='bull' && r.inBand).sort((a,b)=>a.distancePct-b.distancePct);
+  const bear = results.filter(r=>r.direction==='bear' && r.inBand).sort((a,b)=>a.distancePct-b.distancePct);
+  const watch = results.filter(r=>!r.inBand).sort((a,b)=>a.distancePct-b.distancePct).slice(0,24);
+
+  document.getElementById('cntBull').textContent = bull.length;
+  document.getElementById('cntBear').textContent = bear.length;
+  document.getElementById('cntWatch').textContent = watch.length;
+  document.getElementById('bullGrid').innerHTML = bull.length ? bull.map(cardHTML).join('') : '<div class="empty">No long setups at 0.786 right now.</div>';
+  document.getElementById('bearGrid').innerHTML = bear.length ? bear.map(cardHTML).join('') : '<div class="empty">No short setups at 0.786 right now.</div>';
+  document.getElementById('watchGrid').innerHTML = watch.length ? watch.map(cardHTML).join('') : '<div class="empty">Nothing in structure right now.</div>';
+  applySearchFilter();
+  setTimeout(()=>renderAllCharts([...bull, ...bear, ...watch]), 50);
+
+  tickerTape.textContent = `scan complete · ${results.length} valid structures across ${universe.length} pairs`;
+  statusText.textContent = `done · ${new Date().toLocaleTimeString()}`;
+  btn.disabled = false; btn.textContent = 'Run Scan';
+  if(currentScreen==='home') renderHome();
+  if(currentScreen==='watchlist') renderWatchlist();
+}
+document.getElementById('scanBtn').addEventListener('click', ()=>runScan(false));
+
+/* ================= INIT ================= */
+applyTheme(settings.theme);
+setupAutoRefresh();
+renderHome();
+renderChecklist();
+history.replaceState({screen:'home'}, '', '#home');
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); }, 300);
+});
+</script>
+</body>
+</html>
